@@ -1,0 +1,24 @@
+
+
+HELP:
+	$ ./ex_liboCams.py -h
+	Usage: ex_liboCams.py [options]
+
+
+	Options:
+	  -h, --help            show this help message and exit
+	  -a, --alltest         test all resolution in playtime
+	  -t PLAYTIME, --time=PLAYTIME
+        	                playtime for streaming [sec] intValue, 0 means forever
+	  -i INDEX, --index=INDEX
+        	                index of resolusion mode
+
+
+Excution:
+
+	* Test all Formats while 10 seconds
+	$ ./ex_liboCams.py -a -t 10 
+
+	* Test 2nd Format while 5 senconds
+	$ ./ex_liboCams.py -i 1 -t 5
+
