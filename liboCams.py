@@ -20,7 +20,7 @@ class buffer_struct:
     length = 0
 
 class v4l2_util():
-  def __init__(self, devpath, verbose=False):
+  def __init__(self, devpath, verbose=True):
     self.verbose = verbose
     self.shape = None
 
@@ -277,7 +277,7 @@ import numpy as np
 import time
 
 class oCams():
-  def __init__(self, dev, verbose=0):
+  def __init__(self, dev, verbose=1):
     self.dev = dev
     self.cam = None
     self.verbose = verbose

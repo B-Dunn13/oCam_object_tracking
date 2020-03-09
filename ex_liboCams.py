@@ -32,6 +32,9 @@ print 'Control List'
 ctrlist = test.GetControlList()
 for key in ctrlist:
   print '\t', key, '\tID:', ctrlist[key]
+  print test.GetControl(ctrlist[key])
+  if key=="White Balance Blue Component":
+    test.SetControl(ctrlist[key], 250)
 
 test.Close()
 
@@ -44,7 +47,7 @@ else:
   len_range = { options.index }  
 
 for i in len_range:
-  test = liboCams.oCams(devpath, verbose=0)
+  test = liboCams.oCams(devpath, verbose=1)
   
   print 'SET', i, fmtlist[i]
   test.Set(fmtlist[i])
