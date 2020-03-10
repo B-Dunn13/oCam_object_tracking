@@ -33,8 +33,16 @@ ctrlist = test.GetControlList()
 for key in ctrlist:
   print '\t', key, '\tID:', ctrlist[key]
   print test.GetControl(ctrlist[key])
-  if key=="White Balance Blue Component":
+  if key == "White Balance Red Component":
+    test.SetControl(ctrlist[key], 104)
+  elif key == "White Balance Blue Component":
     test.SetControl(ctrlist[key], 250)
+  elif key == "Gain":
+    test.SetControl(ctrlist[key], 64)
+  elif key == "Exposure (Absolute)":
+    test.SetControl(ctrlist[key], 128)
+  elif key == "Exposure, Auto":
+    test.SetControl(ctrlist[key], 3)
 
 test.Close()
 

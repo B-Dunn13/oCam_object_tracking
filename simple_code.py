@@ -1,4 +1,3 @@
-#! /usr/bin/env python2
 from collections import deque
 import argparse
 import imutils
@@ -8,14 +7,32 @@ import numpy as np
 import time
 import sys
 
-      
 devpath = liboCams.FindCamera('oCam')
 if devpath is None:
   exit()
 
 test = liboCams.oCams(devpath, verbose=1)
+
+print 'Format List'
 fmtlist = test.GetFormatList()
-test.Close()
+for fmt in fmtlist:
+  print '\t', fmt
+  
+print 'Control List'
+ctrlist = test.GetControlList()
+for key in ctrlist:
+  print '\t', key, '\tID:', ctrlist[key]
+  print test.GetControl(ctrlist[key])
+  if key == "White Balance Red Component":
+    test.SetControl(ctrlist[key], 104)
+  elif key == "White Balance Blue Component":
+    test.SetControl(ctrlist[key], 250)
+  elif key == "Gain":
+    test.SetControl(ctrlist[key], 64)
+  elif key == "Exposure (Absolute)":
+    test.SetControl(ctrlist[key], 128)
+  elif key == "Exposure, Auto":
+    test.SetControl(ctrlist[key], 3)
 
 test = liboCams.oCams(devpath, verbose=0)
 
@@ -36,30 +53,31 @@ args = vars(ap.parse_args())
 
 # define the lower and upper boundaries of the "red"
 # ball in the HSV color space, then initialize the
-# list of tracked points
+# list of tracked points. Must start before the while
+# for the previous centroid pts to show.
 redLower = (0, 50, 50)
 redUpper = (10, 255, 255)
 pts = deque(maxlen=args["buffer"])
 
 while True:
 	frame = test.GetFrame()
-	rgb = cv.cvtColor(frame, cv.COLOR_BAYER_GB2BGR)
-	src = rgb 
-	#cd cv.imshow(test.cam.card, rgb)
+	BGR = cv.cvtColor(frame, cv.COLOR_BAYER_GB2BGR)
+	src = BGR 
 	
-	#----------------------------------RED BALL TRACKING----------------------------------
+	#----------------------------------RED BALL DETECTION----------------------------------
 	# Check if image is loaded fine
 	if src is None:
 		print ('Error opening image!')
-		print ('Usage: hough_circle.py [image_name -- default ' + default_file + '] \n')
+		print ('Usage: simple_code.py [oCam -- default ' + default_file + '] \n')
 		exit()
-
+	
 	# resize the frame, blur it, and convert it to the HSV
 	# color space
-	src = imutils.resize(rgb, width=600)
-	blurred = cv.GaussianBlur(src, (11, 11), 0)
-	hsv = cv.cvtColor(blurred, cv.COLOR_BGR2HSV)
-	
+	src = imutils.resize(BGR, width=600)
+	blur1 = cv.medianBlur(src, 5)
+	blur2 = cv.GaussianBlur(blur1, (11, 11), 0)
+	hsv = cv.cvtColor(blur2, cv.COLOR_BGR2HSV)
+
 	# construct a mask for the color "red", then perform
 	# a series of dilations and erosions to remove any small
 	# blobs left in the mask
@@ -69,8 +87,7 @@ while True:
 
 	# find contours in the mask and initialize the current
 	# (x, y) center of the ball
-	cnts = cv.findContours(mask.copy(), cv.RETR_EXTERNAL,
-		cv.CHAIN_APPROX_SIMPLE)
+	cnts = cv.findContours(mask.copy(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 	cnts = imutils.grab_contours(cnts)
 	center = None
 
@@ -87,8 +104,7 @@ while True:
 		if radius > 10:
 			# draw the circle and centroid on the frame,
 			# then update the list of tracked points
-			cv.circle(src, (int(x), int(y)), int(radius),
-				(0, 255, 255), 2)
+			cv.circle(src, (int(x), int(y)), int(radius), (0, 255, 255), 2)
 			cv.circle(src, center, 5, (0, 0, 255), -1)
 	
 	# update the points queue
@@ -105,9 +121,10 @@ while True:
 		# draw the connecting lines
 		thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
 		cv.line(src, pts[i - 1], pts[i], (0, 0, 255), thickness)
-	
+	#----------------------------------RED BALL DETECTION----------------------------------
+
 	# show the frame to our screen
-	cv.imshow("Frame", cnts)
+	cv.imshow("Frame", src)
 	char = cv.waitKey(1)
 	if char == 27:
 		break
