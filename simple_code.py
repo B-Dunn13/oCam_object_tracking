@@ -1,5 +1,3 @@
-from collections import deque
-import argparse
 import imutils
 import liboCams
 import cv2 as cv
@@ -7,17 +5,27 @@ import numpy as np
 import time
 import sys
 
+# find the oCam
 devpath = liboCams.FindCamera('oCam')
 if devpath is None:
   exit()
 
-test = liboCams.oCams(devpath, verbose=1)
+test = liboCams.oCams(devpath, verbose = 1)
 
+# get the format list for the oCam
 print 'Format List'
 fmtlist = test.GetFormatList()
 for fmt in fmtlist:
   print '\t', fmt
-  
+
+# set the format for the oCam (8-bit Bayer GRGR/BGBG,
+# 640L, 480L, 30)
+print 'SET', 10, fmtlist[10]
+test.Set(fmtlist[10])
+name = test.GetName()
+
+# get the current camera parameters and set new
+# camera prameters before recording
 print 'Control List'
 ctrlist = test.GetControlList()
 for key in ctrlist:
@@ -34,46 +42,33 @@ for key in ctrlist:
   elif key == "Exposure, Auto":
     test.SetControl(ctrlist[key], 3)
 
-test = liboCams.oCams(devpath, verbose=0)
-
-print 'SET', 8, fmtlist[8]
-test.Set(fmtlist[8])
-name = test.GetName()
 test.Start()
 
 start_time = time.time()
 
 frame_cnt = 0
 
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-b", "--buffer", type=int, default=32,
-	help="max buffer size")
-args = vars(ap.parse_args())
-
+#----------------------------------RED BALL DETECTION----------------------------------
 # define the lower and upper boundaries of the "red"
 # ball in the HSV color space, then initialize the
 # list of tracked points. Must start before the while
-# for the previous centroid pts to show.
+# loop for the previous centroid pts to show.
 redLower = (0, 50, 50)
 redUpper = (10, 255, 255)
-pts = deque(maxlen=args["buffer"])
 
 while True:
 	frame = test.GetFrame()
 	BGR = cv.cvtColor(frame, cv.COLOR_BAYER_GB2BGR)
 	src = BGR 
 	
-	#----------------------------------RED BALL DETECTION----------------------------------
 	# Check if image is loaded fine
 	if src is None:
 		print ('Error opening image!')
 		print ('Usage: simple_code.py [oCam -- default ' + default_file + '] \n')
 		exit()
 	
-	# resize the frame, blur it, and convert it to the HSV
-	# color space
-	src = imutils.resize(BGR, width=600)
+	# resize the frame, blur it, and convert it to the HSV color space
+	# src = imutils.resize(BGR, width = 600)
 	blur1 = cv.medianBlur(src, 5)
 	blur2 = cv.GaussianBlur(blur1, (11, 11), 0)
 	hsv = cv.cvtColor(blur2, cv.COLOR_BGR2HSV)
@@ -82,8 +77,8 @@ while True:
 	# a series of dilations and erosions to remove any small
 	# blobs left in the mask
 	mask = cv.inRange(hsv, redLower, redUpper)
-	mask = cv.erode(mask, None, iterations=2)
-	mask = cv.dilate(mask, None, iterations=2)
+	mask = cv.erode(mask, None, iterations = 2)
+	mask = cv.dilate(mask, None, iterations = 2)
 
 	# find contours in the mask and initialize the current
 	# (x, y) center of the ball
@@ -94,34 +89,20 @@ while True:
 	# only proceed if at least one contour was found
 	if len(cnts) > 0:
 		# find the largest contour in the mask, then use it to
-		# compute the minimum enclosing circle and centroid
-		c = max(cnts, key=cv.contourArea)
-		((x, y), radius) = cv.minEnclosingCircle(c)
+		# compute the bounding rectangle and centroid
+		c = max(cnts, key = cv.contourArea)
+		x, y, w, h = cv.boundingRect(c)
 		M = cv.moments(c)
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 		
-		# only proceed if the radius meets a minimum size
-		if radius > 10:
-			# draw the circle and centroid on the frame,
-			# then update the list of tracked points
-			cv.circle(src, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-			cv.circle(src, center, 5, (0, 0, 255), -1)
-	
-	# update the points queue
-	pts.appendleft(center)
+		# draw the bounding box and centroid on the frame,
+		# then update the list of tracked points
+		cv.rectangle(src, (x, y), (x + w, y + h), (255, 255, 255), 2)
+		cv.circle(src, center, 5, (0, 0, 255), -1)
 
-	# loop over the set of tracked points
-	for i in range(1, len(pts)):
-		# if either of the tracked points are None, ignore
-		# them
-		if pts[i - 1] is None or pts[i] is None:
-			continue
-		
-		# otherwise, compute the thickness of the line and
-		# draw the connecting lines
-		thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
-		cv.line(src, pts[i - 1], pts[i], (0, 0, 255), thickness)
-	#----------------------------------RED BALL DETECTION----------------------------------
+	print 'Result Frame Per Second:', frame_cnt / (time.time() - start_time)
+	print 'Bounding Box Points:', 'Top Left X:', x, 'Top Left Y:', y,\
+	'Bottom Right X:', x + w, 'Bottom Right Y:', y + h
 
 	# show the frame to our screen
 	cv.imshow("Frame", src)
@@ -129,8 +110,7 @@ while True:
 	if char == 27:
 		break
 	frame_cnt += 1
-
-print 'Result Frame Per Second:', frame_cnt/(time.time()-start_time)
+#----------------------------------RED BALL DETECTION----------------------------------
 test.Stop()  
 cv.destroyAllWindows()
 char = cv.waitKey(1)
