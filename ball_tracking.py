@@ -61,10 +61,8 @@ args = vars(ap.parse_args())
 # define the lower and upper boundaries of the "red"
 # ball in the HSV color space, then initialize the
 # list of tracked points
-# redLower = (0, 50, 50)
-# redUpper = (10, 255, 255)
-GreenLower = (29, 86, 6)
-GreenUpper = (64, 255, 255)
+# GreenLower = (29, 86, 6)
+# GreenUpper = (64, 255, 255)
 pts = deque(maxlen=args["buffer"])
 
 # # if a video path was not supplied, grab the reference
@@ -104,16 +102,26 @@ while True:
 	
 	# resize the frame, blur it, and convert it to the HSV
 	# color space
-	# src = imutils.resize(src, width=600)
+	src = imutils.resize(src, width=480)
 	blurred = cv2.medianBlur(src, 3)
 	blurred = cv2.GaussianBlur(blurred, (11, 11), 0)
 	hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 	
+	# construct a mask for the color "red", Lower mask (0-10)
+	redLower = np.array([0, 50, 50])
+	redUpper = np.array([10, 255, 255])
+	mask1 = cv2.inRange(hsv, redLower, redUpper)
+
+	# construct a mask for the color "red", upper mask (170-180)
+	redLower = np.array([170, 50, 50])
+	redUpper = np.array([180, 255, 255])
+	mask2 = cv2.inRange(hsv, redLower, redUpper)
+
 	# construct a mask for the color "red", then perform
 	# a series of dilations and erosions to remove any small
 	# blobs left in the mask
-	mask = cv2.inRange(hsv, GreenLower, GreenUpper)
-	# mask = cv2.inRange(hsv, redLower, redUpper)
+	# mask = cv2.inRange(hsv, GreenLower, GreenUpper)
+	mask = mask1 + mask2
 	mask = cv2.erode(mask, None, iterations=2)
 	mask = cv2.dilate(mask, None, iterations=2)
 
@@ -138,9 +146,8 @@ while True:
 		if radius > 10:
 			# draw the circle and centroid on the frame,
 			# then update the list of tracked points
-			cv2.circle(frame, (int(x), int(y)), int(radius),
-				(0, 255, 255), 2)
-			cv2.circle(frame, center, 5, (0, 0, 255), -1)
+			cv2.circle(src, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+			cv2.circle(src, center, 5, (0, 0, 255), -1)
 	
 	# update the points queue
 	pts.appendleft(center)
@@ -155,10 +162,10 @@ while True:
 		# otherwise, compute the thickness of the line and
 		# draw the connecting lines
 		thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
-		cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+		cv2.line(src, pts[i - 1], pts[i], (0, 0, 255), thickness)
 	
 	# show the frame to our screen
-	cv2.imshow("Frame", mask)
+	cv2.imshow("Frame", src)
 	print 'Result Frame Per Second:', frame_cnt / (time.time() - start_time)
 	key = cv2.waitKey(1) & 0xFF
 	
