@@ -66,10 +66,10 @@ while True:
 
 	# blur the frame and convert it to the HSV color space
 	src = imutils.resize(src, width=480)
-	blur = cv.medianBlur(src, 1)
-	blur = cv.GaussianBlur(src, (9, 9), 0)
-	blur = cv.bilateralFilter(blur, 5, 100, 50)
-	hsv = cv.cvtColor(blur, cv.COLOR_BGR2HSV)
+	blur1 = cv.medianBlur(src, 1)
+	blur2 = cv.GaussianBlur(blur1, (9, 9), 0)
+	blur3 = cv.bilateralFilter(blur2, 3, 50, 50)
+	hsv = cv.cvtColor(blur3, cv.COLOR_BGR2HSV)
 
 	# # construct a mask for the color "red", Lower mask (0-10)
 	# redLower = np.array([0, 50, 50])
@@ -86,8 +86,12 @@ while True:
 	# blobs left in the mask
 	mask = cv.inRange(hsv, GreenLower, GreenUpper)
 	# mask = mask1 + mask2
-	mask = cv.erode(mask, None, iterations = 2)
-	mask = cv.dilate(mask, None, iterations = 2)
+	kernel = np.ones((4, 4), np.uint8)
+	# mask = cv.erode(mask, kernel, iterations = 2)
+	# mask = cv.dilate(mask, kernel, iterations = 4)
+	# mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+	mask = cv.morphologyEx(mask, cv.MORPH_GRADIENT, kernel)
+
 
 	# find contours in the mask and initialize the current
 	# (x, y) center of the ball
@@ -153,6 +157,9 @@ while True:
 	print 'Result Frame Per Second:', frame_cnt / (time.time() - start_time)
 
 	# show the frame to our screen
+	# cv.imshow("Blur1", blur1)
+	# cv.imshow("Blur2", blur2)
+	# cv.imshow("Blur3", blur3)
 	cv.imshow("Mask", mask)
 	cv.imshow("Frame", src)
 	char = cv.waitKey(1) & 0xFF
