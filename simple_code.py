@@ -5,25 +5,25 @@ import numpy as np
 import time
 import sys
 
-# find the oCam
+# Find the oCam
 devpath = liboCams.FindCamera('oCam')
 if devpath is None:
   exit()
 
 test = liboCams.oCams(devpath, verbose = 1)
 
-# get the format list for the oCam
+# Get the format list for the oCam
 print 'Format List'
 fmtlist = test.GetFormatList()
 for fmt in fmtlist:
   print '\t', fmt
 
-# set the format for the oCam (8-bit Bayer GRGR/BGBG,
+# Set the format for the oCam (8-bit Bayer GRGR/BGBG,
 # 640L, 480L, 60)
 print 'SET', 8, fmtlist[8]
 test.Set(fmtlist[8])
 
-# get the current camera parameters and set new
+# Get the current camera parameters and set new
 # camera prameters before recording
 print 'Control List'
 ctrlist = test.GetControlList()
@@ -59,31 +59,31 @@ while True:
 		print ('Usage: simple_code.py [oCam -- default ' + default_file + '] \n')
 		exit()
 	
-	# define the lower and upper boundaries of the "green"
+	# Define the lower and upper boundaries of the "green"
 	# ball in the HSV color space
 	GreenLower = (29, 86, 6)
 	GreenUpper = (64, 255, 255)
 
 	# blur the frame and convert it to the HSV color space
-	src = imutils.resize(src, width=480)
+	src = imutils.resize(src, width = 480)
 	blur1 = cv.medianBlur(src, 1)
 	blur2 = cv.GaussianBlur(blur1, (9, 9), 0)
 	blur3 = cv.bilateralFilter(blur2, 3, 50, 50)
 	hsv = cv.cvtColor(blur3, cv.COLOR_BGR2HSV)
 
-	# # construct a mask for the color "red", Lower mask (0-10)
+	# # Construct a mask for the color "red", Lower mask (0-10)
 	# redLower = np.array([0, 50, 50])
 	# redUpper = np.array([10, 255, 255])
 	# mask1 = cv.inRange(hsv, redLower, redUpper)
 
-	# # construct a mask for the color "red", upper mask (170-180)
+	# # Construct a mask for the color "red", upper mask (170-180)
 	# redLower = np.array([170, 50, 50])
 	# redUpper = np.array([180, 255, 255])
 	# mask2 = cv.inRange(hsv, redLower, redUpper)
 
-	# construct a combined mask for the color "red", then perform
+	# Construct a combined mask for the color "red", then perform
 	# a series of dilations and erosions to remove any small
-	# blobs left in the mask
+	# unwanted colors left in the mask
 	mask = cv.inRange(hsv, GreenLower, GreenUpper)
 	# mask = mask1 + mask2
 	kernel = np.ones((4, 4), np.uint8)
@@ -93,70 +93,66 @@ while True:
 	mask = cv.morphologyEx(mask, cv.MORPH_GRADIENT, kernel)
 
 
-	# find contours in the mask and initialize the current
+	# Find contours in the mask and initialize the current
 	# (x, y) center of the ball
-	contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+	contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
 	contours = imutils.grab_contours(contours)
 	center = None
 
-	# only proceed if at least one contour was found
+	# Only proceed if at least one contour was found
 	if len(contours) > 0:
-		# # find the largest contour in the mask, then use it to
+		# # Find the largest contour in the mask, then use it to
 		# # compute the minimum enclosing circle and centroid
 		# c = max(contours, key = cv.contourArea)
 		# ((x, y), radius) = cv.minEnclosingCircle(c)
 		
-		# find the largest contour in the mask, then use it to
+		# Find the largest contour in the mask, then use it to
 		# compute the minimum area rectangle and centroid
 		c = max(contours, key = cv.contourArea)
+		print cv.contourArea(c)
 		
-		# contour approximation
-		epsilon = 0.005*cv.arcLength(c, True)
+		# Contour approximation
+		epsilon = 0.001*cv.arcLength(c, True)
 		approx = cv.approxPolyDP(c, epsilon, True)
 
-		
-		# use this method when tracking a sphere or ball,
-		# the bounding box will not rotate
-		# x, y, w, h = cv.boundingRect(c)
-		
 		M = cv.moments(c)
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
-		# use this method when tracking rectangular objects,
+		# Use this method when tracking rectangular objects,
 		# the bounding box will rotate
-		points = cv.minAreaRect(c)
+		points = cv.minAreaRect(approx)
 		box = cv.boxPoints(points)
 		box = np.int0(box)
 
-		# draw the bounding box and centroid of the object
-		cv.drawContours(src, [approx], 0, (0, 255, 255), 1)
-		cv.drawContours(src, [box], 0, (0, 0, 255), 1)
-		cv.circle(src, center, 5, (0, 0, 255), -1)
-		print "Bounding Box (BL-BR CW):", box
-		
-		# use this method when tracking a sphere or ball,
+		# Use this method when tracking a sphere or ball,
 		# the bounding box will not rotate
-		# cv.rectangle(src, (x, y), (x + w, y + h), (255, 255, 255), 2)
-		# cv.circle(src, center, 5, (0, 0, 255), -1)
-		# print "Bounding Box:", (x, y), ((x + w), y), ((x + w), (y + h)), (x, (y + h))
+		# x, y, w, h = cv.boundingRect(approx)
 
-		# # only proceed if the radius meets a minimum size
+		# # Only proceed if the radius meets a minimum size
 		# if radius > 10:
 		# 	# draw the bounding box and centroid on the frame
 		# 	cv.circle(src, (int(x), int(y)), int(radius), (0, 255, 255), 2)
 		# 	cv.circle(src, center, 5, (0, 0, 255), -1)
+		
+		# # Only proceed if the radius meets a minimum size
+		# if radius > 10:
+		# cv.rectangle(src, (x, y), (x + w, y + h), (255, 255, 255), 2)
+		# cv.circle(src, center, 5, (0, 0, 255), -1)
+		# print "Bounding Box:", (x, y), ((x + w), y), ((x + w), (y + h)), (x, (y + h))
 
-		# only proceed if the area meets a minimum size
-		# if contours > 10:
-		# 	box = cv.boxPoints(rect)
-		# 	box = np.int0(box)
-		# 	src = cv.drawContours(src, [box], 0, (0, 0, 255), 1)
-		# 	cv.circle(src, center, 5, (0, 0, 255), -1)
-		# 	print box
+		# Only proceed if the area meets a minimum size
+		if cv.contourArea(c) > 300:
+			cv.drawContours(src, [approx], 0, (0, 255, 255), 1)
+			cv.drawContours(src, [box], 0, (0, 0, 255), 2)
+			cv.circle(src, center, 5, (0, 0, 255), -1)
+			print "Bounding Box (BL-BR CW):", box
+
+		elif cv.contourArea(c) < 300:
+			print None, None, None, None
 
 	print 'Result Frame Per Second:', frame_cnt / (time.time() - start_time)
 
-	# show the frame to our screen
+	# Show the frame on our screen
 	# cv.imshow("Blur1", blur1)
 	# cv.imshow("Blur2", blur2)
 	# cv.imshow("Blur3", blur3)
