@@ -109,14 +109,10 @@ while True:
 		# Find the largest contour in the mask, then use it to
 		# compute the minimum area rectangle and centroid
 		c = max(contours, key = cv.contourArea)
-		print cv.contourArea(c)
 		
 		# Contour approximation
 		epsilon = 0.001*cv.arcLength(c, True)
 		approx = cv.approxPolyDP(c, epsilon, True)
-
-		M = cv.moments(c)
-		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
 		# Use this method when tracking rectangular objects,
 		# the bounding box will rotate
@@ -127,6 +123,9 @@ while True:
 		# Use this method when tracking a sphere or ball,
 		# the bounding box will not rotate
 		# x, y, w, h = cv.boundingRect(approx)
+
+		M = cv.moments(c)
+		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
 		# # Only proceed if the radius meets a minimum size
 		# if radius > 10:
@@ -146,9 +145,12 @@ while True:
 			cv.drawContours(src, [box], 0, (0, 0, 255), 2)
 			cv.circle(src, center, 5, (0, 0, 255), -1)
 			print "Bounding Box (BL-BR CW):", box
+			print "Area:", cv.contourArea(c)
 
 		elif cv.contourArea(c) < 300:
 			print None, None, None, None
+
+# Need to add the area = relative distance curve! 
 
 	print 'Result Frame Per Second:', frame_cnt / (time.time() - start_time)
 
