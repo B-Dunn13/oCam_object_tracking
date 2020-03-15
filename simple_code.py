@@ -2,8 +2,19 @@ import imutils
 import liboCams
 import cv2 as cv
 import numpy as np
+import math
 import time
 import sys
+# import FUNKYTIME as FT
+
+# Find the distance of the object relative to the camera
+def FindRelativeDistance(contours):
+	if cv.contourArea(contours) < 500:
+		relativeDistance = 2.021 * math.exp(-0.0021 * cv.contourArea(c)) + 0.07472 * math.exp(0.0031 * cv.contourArea(c))
+	else:
+		relativeDistance = 0.9576 * math.exp(-0.001674 * cv.contourArea(c)) + 0.6411 * math.exp(-0.0001057 * cv.contourArea(c))
+	return relativeDistance
+
 
 # Find the oCam
 devpath = liboCams.FindCamera('oCam')
@@ -100,12 +111,7 @@ while True:
 	center = None
 
 	# Only proceed if at least one contour was found
-	if len(contours) > 0:
-		# # Find the largest contour in the mask, then use it to
-		# # compute the minimum enclosing circle and centroid
-		# c = max(contours, key = cv.contourArea)
-		# ((x, y), radius) = cv.minEnclosingCircle(c)
-		
+	if len(contours) > 0:		
 		# Find the largest contour in the mask, then use it to
 		# compute the minimum area rectangle and centroid
 		c = max(contours, key = cv.contourArea)
@@ -126,18 +132,15 @@ while True:
 
 		M = cv.moments(c)
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-
-		# # Only proceed if the radius meets a minimum size
-		# if radius > 10:
-		# 	# draw the bounding box and centroid on the frame
-		# 	cv.circle(src, (int(x), int(y)), int(radius), (0, 255, 255), 2)
-		# 	cv.circle(src, center, 5, (0, 0, 255), -1)
 		
-		# # Only proceed if the radius meets a minimum size
-		# if radius > 10:
-		# cv.rectangle(src, (x, y), (x + w, y + h), (255, 255, 255), 2)
-		# cv.circle(src, center, 5, (0, 0, 255), -1)
-		# print "Bounding Box:", (x, y), ((x + w), y), ((x + w), (y + h)), (x, (y + h))
+		# # Only proceed if the area meets a minimum size
+		# if cv.contourArea(c) > 300:
+			# cv.rectangle(src, (x, y), (x + w, y + h), (255, 255, 255), 2)
+			# cv.circle(src, center, 5, (0, 0, 255), -1)
+			# print "Bounding Box:", (x, y), ((x + w), y), ((x + w), (y + h)), (x, (y + h))
+		
+		# elif cv.contourArea(c) < 300:
+			# print "No object Detected"
 
 		# Only proceed if the area meets a minimum size
 		if cv.contourArea(c) > 300:
@@ -145,19 +148,20 @@ while True:
 			cv.drawContours(src, [box], 0, (0, 0, 255), 2)
 			cv.circle(src, center, 5, (0, 0, 255), -1)
 			print "Bounding Box (BL-BR CW):", box
-			print "Area:", cv.contourArea(c)
+			print "Area:", cv.contourArea(c) # prints the contour area, i.e., size of the object
+			print "IDK:", cv.minAreaRect(approx) # prints the bounding rectangle verteces and angle of rotation
 
 		elif cv.contourArea(c) < 300:
-			print None, None, None, None
+			print "No object Detected"
 
-# Need to add the area = relative distance curve! 
+		# Find the distance of the object relative to the camera
+		# relativeDistance = FT.FindRelativeDistance(c)
+		relativeDistance = FindRelativeDistance(c)
+		print "Relative Distance to Object: ", relativeDistance
 
 	print 'Result Frame Per Second:', frame_cnt / (time.time() - start_time)
 
 	# Show the frame on our screen
-	# cv.imshow("Blur1", blur1)
-	# cv.imshow("Blur2", blur2)
-	# cv.imshow("Blur3", blur3)
 	cv.imshow("Mask", mask)
 	cv.imshow("Frame", src)
 	char = cv.waitKey(1) & 0xFF
