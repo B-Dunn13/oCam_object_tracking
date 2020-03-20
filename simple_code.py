@@ -10,11 +10,10 @@ import sys
 # Find the distance of the object relative to the camera
 def FindRelativeDistance(contours):
 	if cv.contourArea(contours) < 500:
-		relativeDistance = 2.021 * math.exp(-0.0021 * cv.contourArea(c)) + 0.07472 * math.exp(0.0031 * cv.contourArea(c))
+		RelativeDistance = 2.021 * math.exp(-0.0021 * cv.contourArea(c)) + 0.07472 * math.exp(0.0031 * cv.contourArea(c))
 	else:
-		relativeDistance = 0.9576 * math.exp(-0.001674 * cv.contourArea(c)) + 0.6411 * math.exp(-0.0001057 * cv.contourArea(c))
-	return relativeDistance
-
+		RelativeDistance = 0.9576 * math.exp(-0.001674 * cv.contourArea(c)) + 0.6411 * math.exp(-0.0001057 * cv.contourArea(c))
+	return RelativeDistance
 
 # Find the oCam
 devpath = liboCams.FindCamera('oCam')
@@ -69,11 +68,6 @@ while True:
 		print ('Error opening image!')
 		print ('Usage: simple_code.py [oCam -- default ' + default_file + '] \n')
 		exit()
-	
-	# Define the lower and upper boundaries of the "green"
-	# ball in the HSV color space
-	GreenLower = (29, 86, 6)
-	GreenUpper = (64, 255, 255)
 
 	# blur the frame and convert it to the HSV color space
 	src = imutils.resize(src, width = 480)
@@ -81,6 +75,12 @@ while True:
 	blur2 = cv.GaussianBlur(blur1, (9, 9), 0)
 	blur3 = cv.bilateralFilter(blur2, 3, 50, 50)
 	hsv = cv.cvtColor(blur3, cv.COLOR_BGR2HSV)
+	# gray = cv.cvtColor(blur3, cv.COLOR_BGR2GRAY)
+
+	# Define the lower and upper boundaries of the "green"
+	# ball in the HSV color space
+	GreenLower = (29, 86, 6)
+	GreenUpper = (64, 255, 255)
 
 	# # Construct a mask for the color "red", Lower mask (0-10)
 	# redLower = np.array([0, 50, 50])
@@ -103,11 +103,18 @@ while True:
 	# mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 	mask = cv.morphologyEx(mask, cv.MORPH_GRADIENT, kernel)
 
+	# # corner detection
+	# corners = cv.goodFeaturesToTrack(mask, 4, 0.1, 10)
+	# corners = np.int0(corners)
+
+	# for i in corners:
+	# 	x, y = i.ravel()
+	# 	cv.circle(src, (x, y), 3, 255, -1)
 
 	# Find contours in the mask and initialize the current
-	# (x, y) center of the ball
+	# (x, y) center of the object
 	contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-	contours = imutils.grab_contours(contours)
+	contours = imutils.grab_contours(contours) # grabs the appropriate tuple value based on the OpenCV version
 	center = None
 
 	# Only proceed if at least one contour was found
@@ -155,14 +162,15 @@ while True:
 			print "No object Detected"
 
 		# Find the distance of the object relative to the camera
-		# relativeDistance = FT.FindRelativeDistance(c)
-		relativeDistance = FindRelativeDistance(c)
-		print "Relative Distance to Object: ", relativeDistance
+		# RelativeDistance = FT.FindRelativeDistance(c)
+		RelativeDistance = FindRelativeDistance(c)
+		print "Relative Distance to Object: ", RelativeDistance
+		print "center: ", center
 
 	print 'Result Frame Per Second:', frame_cnt / (time.time() - start_time)
 
 	# Show the frame on our screen
-	cv.imshow("Mask", mask)
+	# cv.imshow("Mask", mask)
 	cv.imshow("Frame", src)
 	char = cv.waitKey(1) & 0xFF
 	if char == 27:
