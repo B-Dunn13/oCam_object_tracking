@@ -108,10 +108,19 @@ P_c = (X_c, Y_c, Z_c)
 # Image frame (P):
 p_0 = np.matrix([x_0, y_0])
 p = np.matrix([x, y])
+
 # Equation 2.1: principal point relationship
 x = (f * X_c / Z_c) + x_0
 y = (f * Y_c / Z_c) + y_0 
 P_p = (x - x_0, y - y_0)
+
+# Equation 6 from Visual Servo Control Part 1: projection equation
+x = (u - c_u) / f * alpha
+y = (v - c_v) / f
+alpha = 640/480 # ratio of pixel dimensions
+c_u = 320 # principal point x-coordinate
+c_v = 240 # principal point y-coordinate
+f = 0.0036 # camera focal length (m)
 
 # Target frame (T):
 v_t = 0 # target velocity
@@ -120,6 +129,14 @@ v_t = 0 # target velocity
 
 
 # -----------------------IBVS CONTROL LAW-----------------------
+x_1 = x
+y_1 = y
+x_2 = x + w
+y_2 = y
+x_3 = x + w
+y_3 = y + h
+x_4 = x
+y_4 = y + h
 s = np.matrix([[x_1], [y_1], [x_2], [y_2], [x_3], [y_3], [x_4], [y_4]])
 
 # Equation 3.6: derivative of the projection equations (2.1)
@@ -138,7 +155,11 @@ FeatureJacobian = np.matrix([[(-1 / Z), 0, (x_1 / Z), (x_1 * y_1), -(1 + math.po
 	[(-1 / Z), 0, (x_4 / Z), (x_4 * y_4), -(1 + math.pow(x_4,2)), y_4],
 	[0, (-1 / Z), (y_4 / Z), (1 + math.pow(y_4,2)), (-x_4 * y_4), -x_4]])
 
-CameraVelocity = np.matrix([[v_cx], [v_cy], [v_cz]])
+L_eplus = inv(L_e.transpose * L_e) * L_e.transpose # Moore-Penrose pseudo inverse
+
+InteractionMatrixApproximation = (1 / 2) * (L_e + L_e_star)
+
+CameraVelocity = np.matrix([[v_cx], [v_cy], [v_cz]]) # input to the controller
 
 # Equation 3.8: camera velocity relative to target velocity
 RelativeCameraVelocity = np.matrix([[v_cx - v_tx], [v_cy - v_ty], [v_cz - v_tz], [w_cx], [w_cy], [w_cz]])
@@ -158,8 +179,8 @@ e_dot = s_dot
 
 # -----------------------FUNCTIONS-----------------------
 # Some setup
-w_im = 480  # image width in pixels
-h_im = 360  # image height in pixels
+w_im = 640  # image width in pixels
+h_im = 480  # image height in pixels
 got_initial_frame = False
 initial_f_u = None
 initial_f_v = None
@@ -178,16 +199,16 @@ prev_delta_y_tme = 0
 prev_delta_psi_tme = 0
 prev_delta_z_tme = 0
 x_1_star = 0
-x_2_star = 480
+x_2_star = 640
 x_3_star = 0
-x_4_star = 480
+x_4_star = 640
 y_1_star = 0
 y_2_star = 0
-y_3_star = 360
-y_4_star = 360
+y_3_star = 480
+y_4_star = 480
 center = None
-x_0 = 240
-y_0 = 180
+x_0 = 320
+y_0 = 240
 
 kp_vx = 0.0254
 kd_vx = 0.00124

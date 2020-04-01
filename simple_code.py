@@ -36,7 +36,7 @@ def FindRelativeDistance(contours):
 # 	f_v = (y + (h / 2)) / h_im
 # 	f_delta = math.sqrt((w_im * h_im) / (w * h))
 
-# 	return f_u, f_v, f_delta
+# 	return (f_u, f_v), f_delta
 
 # Find the oCam
 devpath = liboCams.FindCamera("oCam")
@@ -150,60 +150,58 @@ while True:
 		epsilon = 0.001*cv.arcLength(c, True)
 		approx = cv.approxPolyDP(c, epsilon, True)
 
-		# # Use this method when tracking rectangular objects,
-		# # the bounding box will rotate
-		# points = cv.minAreaRect(approx)
-		# box = cv.boxPoints(points)
-		# box = np.int0(box)
+		# Use this method when tracking rectangular objects,
+		# the bounding box will rotate up to 90 degrees
+		points = cv.minAreaRect(approx)
+		box = cv.boxPoints(points)
+		box = np.int0(box)
 
-		# Use this method when tracking a sphere or ball,
-		# the bounding box will not rotate
-		x, y, w, h = cv.boundingRect(approx)
-		print "x:", x, "y:", y, "w:", w, "h:", h
+		# # Use this method when tracking a sphere or ball,
+		# # the bounding box will not rotate
+		# x, y, w, h = cv.boundingRect(approx)
+		# print "x:", x, "y:", y, "w:", w, "h:", h
 
 		M = cv.moments(c)
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 		
+		# # Only proceed if the area meets a minimum size
+		# if cv.contourArea(c) >= 300:
+		# 	cv.drawContours(src, [approx], 0, (0, 255, 255), 1)
+		# 	cv.rectangle(src, (x, y), (x + w, y + h), (0, 0, 255), 2)
+		# 	cv.circle(src, center, 5, (0, 0, 255), -1)
+		# 	print "Bounding Box:", (x, y), ((x + w), y), ((x + w), (y + h)), (x, (y + h))
+		
+		# else:
+		# 	print "No Object Detected"
+
+		# if x is None:  # if nothing is in frame, don't send any information
+		# 	print "No Object Detected:", None
+
+		# if (x + w == 480 or   # if target is at edge, don't send any information
+		# 		x <= 0 or
+		# 		y + h == 360 or
+		# 		y <= 0):
+		# 	print "Object Leaving Frame"
+
+		# # Equation 1 from Pestana "Computer vision based general object following"
+		# f_u = (x + (w / 2))
+		# f_v = (y + (h / 2))
+		# f_delta = math.sqrt((w_im * h_im) / (w * h))
+		# print "Centroid Coordinates:", (f_u, f_v)
+
 		# Only proceed if the area meets a minimum size
 		if cv.contourArea(c) >= 300:
 			cv.drawContours(src, [approx], 0, (0, 255, 255), 1)
-			cv.rectangle(src, (x, y), (x + w, y + h), (0, 0, 255), 2)
+			cv.drawContours(src, [box], 0, (0, 0, 255), 2)
 			cv.circle(src, center, 5, (0, 0, 255), -1)
-			print "Bounding Box:", (x, y), ((x + w), y), ((x + w), (y + h)), (x, (y + h))
-		
+			print "Bounding Box (BL-BR CW):", box
+			print "Contour Area:", cv.contourArea(c) # prints the contour area, i.e., size of the object
+			print "Bounding Box Coordinates:", cv.minAreaRect(approx) # prints the bounding rectangle verteces and angle of rotation
+
 		else:
-			print "No Object Detected"
-
-		if x is None:  # if nothing is in frame, don't send any information
-			print "No Object Detected:", None
-
-		if (x + w == 480 or   # if target is at edge, don't send any information
-				x <= 0 or
-				y + h == 360 or
-				y <= 0):
-			print "Object Leaving Frame"
-
-		# Equation 1 from Pestana "Computer vision based general object following"
-		f_u = (x + (w / 2))
-		f_v = (y + (h / 2))
-		f_delta = math.sqrt((w_im * h_im) / (w * h))
-		print "Centroid Coordinates:", (f_u, f_v)
-
-		# # Only proceed if the area meets a minimum size
-		# if cv.contourArea(c) > 300:
-		# 	cv.drawContours(src, [approx], 0, (0, 255, 255), 1)
-		# 	cv.drawContours(src, [box], 0, (0, 0, 255), 2)
-		# 	cv.circle(src, center, 5, (0, 0, 255), -1)
-		# 	print "Bounding Box (BL-BR CW):", box
-		# 	print "Area:", cv.contourArea(c) # prints the contour area, i.e., size of the object
-		# 	print "IDK:", cv.minAreaRect(approx) # prints the bounding rectangle verteces and angle of rotation
-
-		# elif cv.contourArea(c) < 300:
-		# 	print "No object Detected"
+			print "No object Detected"
 
 		# # Find the coordinates of the centroid in the image frame
-		# Centroid = GetCentroidData()
-		# print "Centroid Coordinates: ", f_u
 		print "Center:", center
 
 		# Find the distance of the object relative to the camera
