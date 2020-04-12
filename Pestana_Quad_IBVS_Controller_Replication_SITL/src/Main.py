@@ -45,7 +45,6 @@ video = Video()
 while not video.frame_available():
     continue
 
-
 def gettargetposition():
     # while not video.frame_available():
     #     continue
@@ -78,7 +77,6 @@ def gettargetposition():
         return x
     return x, y, w, h
 
-
 def getcentroiddata():
     x_bb, y_bb, w_bb, h_bb = gettargetposition()
 
@@ -97,7 +95,6 @@ def getcentroiddata():
     f_delta = math.sqrt((w_im * h_im) / (w_bb * h_bb))
 
     return f_u, f_v, f_delta
-
 
 def decouplecentroiddata():
     f_u, f_v, f_delta = getcentroiddata()
@@ -123,7 +120,6 @@ def decouplecentroiddata():
 
     return delta_f_u_psi, delta_f_u_y, delta_f_v_z, delta_f_delta_x
 
-
 def getsetpoints():
     delta_f_u_psi, delta_f_u_y, delta_f_v_z, delta_f_delta_x = decouplecentroiddata()
     global A_exp, d_exp, w_im, h_im, alpha_u, alpha_v, prev_delta_psi_tme, prev_delta_x_tme, prev_delta_y_tme, prev_delta_z_tme
@@ -133,7 +129,6 @@ def getsetpoints():
         return 0, 0, 0, 0
 
     # x velocity controller
-    # delta_x_tme = delta_f_delta_x * math.sqrt(A_exp) * math.sqrt((alpha_u * alpha_v) / (w_im * h_im))
     delta_x_tme = delta_f_delta_x * math.sqrt(A_exp)
     v_xr = delta_x_tme * kp_vx  # + ((delta_x_tme - prev_delta_x_tme) / (1 / 30)) * kd_vx
     prev_delta_x_tme = delta_x_tme
@@ -156,7 +151,6 @@ def getsetpoints():
     print("delta_x_tme: " + str(delta_x_tme))
 
     return v_xr, v_yr, yawrate, v_zr
-
 
 async def run():
     global euler_angles
@@ -223,7 +217,6 @@ async def run():
         #     continue
         # await drone.offboard.set_velocity_body(
         #     VelocityBodyYawspeed(0.0, (x[0]-160)/10, 0.0, 0.0))
-
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
