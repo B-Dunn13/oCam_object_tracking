@@ -10,123 +10,10 @@ import liboCams
 import numpy as np
 import sys
 
-# -----------------------QUADROTOR MODEL DYNAMICS-----------------------
 # Variables and parameters
-# Euler angles:
-psi = ? # yaw angle from drone
-phi = ? # roll angle from drone
-theta = ? # pitch angle from drone
+D = RelativeDistance # Depth of the point relative to the camera frame
 f = 0.0036 # camera focal length (m)
 FocalLength = f
-d = 0.225 # distance from motor to center of mass (m)
-mu = ? # constant relating the torque to the rotation speed of the motors
-m = 1.7 # mass of the drone (kg)
-g = 9.81 # acceleration due to gravity (m/s^2)
-T = T1 + T2 + T3 +T4 # total thrust from each motor
-TotalThrust = [0:1] # thrust (%)
-
-# Inertial frame (I):
-x_I
-y_I
-z_I
-
-v_c
-v_ct
-
-I_xx = ? # moment of inertia along the x-axis
-I_yy = ? # moment of inertia along the y-axis
-I_zz = ? # moment of inertia along the z-axis
-
-# Nonlinearized model:
-x_ddotI = (T / m) * ((math.sin(phi) * math.sin(psi)) + (math.cos(phi) * math.cos(psi) * math.sin(theta)))
-y_ddotI = (T / m) * ((math.cos(phi) * math.sin(theta) * math.sin(psi)) - (math.sin(phi) * math.cos(psi)))
-z_ddotI = ((T / m) * (math.cos(theta) * math.cos(phi))) - g
-
-# Body fixed frame (B):
-x_B
-y_B
-z_B
-
-# F = ma = m*v_dot + m*omega x v
-F = (m * g * z_I) - (T * z_B)
-CombinedThrust = np.matrix([[0], [0], [T]])
-GravitationalForce = np.matrix([[0], [0], [-m * g]])
-LinearVelocity = np.matrix([[u], [v], [w]])
-LinearAcceleration = np.matrix([[u_dot], [v_dot], [w_dot]])
-AngularVelocity = np.matrix([[p], [q], [r]])
-AngularAcceleration = np.matrix([[p_dot], [q_dot], [r_dot]])
-# OrthogonalVelocity = np.matrix([[(q * w) - (v * r)], [(u * r) - (p * w)], [(p * v) - (u * q)]])
-
-# Converting from Inertial to Body frame:
-I2B_RotationMatrix = np.matrix([[(math.cos(psi) * math.cos(theta)), (math.sin(psi) * math.cos(theta)), (-math.sin(theta))],
-	[(math.cos(psi) * math.sin(theta) * math.sin(phi)) - (math.sin(psi) * math.cos(phi)), (math.sin(psi) * math.sin(theta) * math.sin(phi)) + (math.cos(psi) * math.cos(phi)), (math.cos(theta) * math.sin(phi))],
-	[(math.cos(psi) * math.sin(theta) * math.cos(phi)) + (math.sin(psi) * math.sin(phi)), (math.sin(psi) * math.sin(theta) * math.cos(phi)) - (math.cos(psi) * math.sin(phi)), (math.cos(theta) * math.cos(phi))]])
-
-TotalForce = CombinedThrust + (I2B_RotationMatrix * GravitationalForce)
-TotalForce = (m * LinearAcceleration) + (m * np.cross(AngularVelocity, LinearVelocity))
-
-u_dot = (g * math.sin(theta)) + (v * r) - (q * w)
-v_dot = (-g * math.cos(theta) * math.sin(phi)) + (p * w) - (u * r)
-w_dot = (T / m) - (g * math.cos(theta) * math.cos(phi)) + (w * q) - (p *v)
-
-M = np.matrix([[M_x], [M_y], [M_z]])
-Inertia = np.matrix([[I_xx, 0, 0], [0, I_yy, 0], [0, 0, I_zz]])
-BodyMoment = (Inertia * AngularAcceleration) + np.cross(AngularVelocity, (Inertia * AngularVelocity))
-
-# Equation 2.2: angular acceleration
-p_dot = (M_x - ((I_zz - I_yy) * (q *r))) / I_xx
-q_dot = (M_y - ((I_xx - I_zz) * (p *r))) / I_yy
-r_dot = M_z / I_zz
-
-# -----------------------LINEARIZATION APPROXIMATION-----------------------
-# Roll annd pitch are assumed to be small, sin(a) = a and cos(a) = 1
-# Equation 2.3: linerized model, small roll and pitch angles
-x_ddot = (T / m) * ((phi * math.sin(psi)) + (theta * math.cos(psi)))
-y_ddot = (T / m) * ((theta * math.sin(psi)) - (phi * math.cos(psi)))
-z_ddot = (T / m) - g
-
-# Equation 2.6: linearized angular accelerations
-phi_ddot = (M_x - (I_zz - I_yy) * (theta_dot * psi_dot)) / I_xx
-theta_ddot = (M_y - (I_xx - I_zz) * (phi_dot * psi_dot)) / I_yy
-psi_ddot = M_z / I_zz
-
-# Equation 2.7: combined thrust input
-K = np.matrix([[1, 1, 1, 1], [0, -d, 0, d], [-d, 0, d, 0], [-mu, mu, -mu, mu]])
-MotorThrust = np.matrix([[T_1], [T_2], [T_3], [T_4]])
-ThrustInput = K * MotorThrust
-U = np.matrix([[U_1], [U_2], [U_3], [U_4]])
-
-# Equation 2.9: quadrotor controller input
-U_1 = ((T / m) * (math.cos(theta) * math.cos(phi))) - g
-U_2 = (M_x - ((I_zz - I_yy) * (theta_dot * psi_dot))) / I_xx
-U_3 = (M_y - ((I_xx - I_zz) * (phi_dot * psi_dot))) / I_yy
-U_4 = M_z / I_zz
-
-# Camera frame (C):
-P_c = (X_c, Y_c, Z_c)
-
-# Image frame (P):
-p_0 = np.matrix([x_0, y_0])
-p = np.matrix([x, y])
-
-# Equation 2.1: principal point relationship
-x = (f * X_c / Z_c) + x_0
-y = (f * Y_c / Z_c) + y_0 
-P_p = (x - x_0, y - y_0)
-
-# Equation 6 from Visual Servo Control Part 1: projection equation
-x = (u - c_u) / f * alpha
-y = (v - c_v) / f
-alpha = 640/480 # ratio of pixel dimensions
-c_u = 320 # principal point x-coordinate
-c_v = 240 # principal point y-coordinate
-f = 0.0036 # camera focal length (m)
-
-# Target frame (T):
-v_t = 0 # target velocity
-
-# Virtual camera frame (V):
-
 
 # -----------------------IBVS CONTROL LAW-----------------------
 x_1 = x
@@ -137,45 +24,30 @@ x_3 = x + w
 y_3 = y + h
 x_4 = x
 y_4 = y + h
-s = np.matrix([[x_1], [y_1], [x_2], [y_2], [x_3], [y_3], [x_4], [y_4]])
-
-# Equation 3.6: derivative of the projection equations (2.1)
-x_dot = (f * X_c_dot / Z_c) - (f * X_c * Z_c_dot / math.pow(Z_c, 2))
-y_dot = (f * Y_c_dot / Z_c) - (f * Y_c * Z_c_dot / math.pow(Z_c, 2))
-
-InteractionMatrix = np.matrix([[(-1 / Z), 0, (x / Z), (x * y), -(1 + math.pow(x,2)), y],
-	[0, (-1 / Z), (y / Z), (1 + math.pow(y,2)), (-x * y), -x]]) # Z is the depth of the point relative to the camera frame
-
-FeatureJacobian = np.matrix([[(-1 / Z), 0, (x_1 / Z), (x_1 * y_1), -(1 + math.pow(x_1,2)), y_1],
-	[0, (-1 / Z), (y_1 / Z), (1 + math.pow(y_1,2)), (-x_1 * y_1), -x_1], 
-	[(-1 / Z), 0, (x_2 / Z), (x_2 * y_2), -(1 + math.pow(x_2,2)), y_2],
-	[0, (-1 / Z), (y_2 / Z), (1 + math.pow(y_2,2)), (-x_2 * y_2), -x_2],
-	[(-1 / Z), 0, (x_3 / Z), (x_3 * y_3), -(1 + math.pow(x_3,2)), y_3],
-	[0, (-1 / Z), (y_3 / Z), (1 + math.pow(y_3,2)), (-x_3 * y_3), -x_3],
-	[(-1 / Z), 0, (x_4 / Z), (x_4 * y_4), -(1 + math.pow(x_4,2)), y_4],
-	[0, (-1 / Z), (y_4 / Z), (1 + math.pow(y_4,2)), (-x_4 * y_4), -x_4]])
-
-L_eplus = inv(L_e.transpose * L_e) * L_e.transpose # Moore-Penrose pseudo inverse
-
-InteractionMatrixApproximation = (1 / 2) * (L_e + L_e_star)
-
-CameraVelocity = np.matrix([[v_cx], [v_cy], [v_cz]]) # input to the controller
-
-# Equation 3.8: camera velocity relative to target velocity
-RelativeCameraVelocity = np.matrix([[v_cx - v_tx], [v_cy - v_ty], [v_cz - v_tz], [w_cx], [w_cy], [w_cz]])
-
-# Equation 3.9: image kinematics
-s_dot =  FeatureJacobian * RelativeCameraVelocity
-
-FeaturePoints = np.matrix([x_1, y_1, x_2, y_2, x_3, y_3, x_4, y_4])
-DesiredFeaturePoints = np.matrix([x_1_star, y_1_star, x_2_star, y_2_star, x_3_star, y_3_star, x_4_star, y_4_star])
+FeaturePoints = np.matrix([[x_1], [y_1], [x_2], [y_2], [x_3], [y_3], [x_4], [y_4]])
+DesiredFeaturePoints = np.matrix([[10], [10], [630], [10], [630], [470], [10], [470]])
 Error = FeaturePoints - DesiredFeaturePoints
 
-# Equation 3.10: derivative of the error
-e_dot = s_dot
+FeatureJacobian = np.matrix([[(-1 / D), 0, (x_1 / D), (x_1 * y_1), -(1 + math.pow(x_1,2)), y_1],
+	[0, (-1 / D), (y_1 / D), (1 + math.pow(y_1,2)), (-x_1 * y_1), -x_1],
+	[(-1 / D), 0, (x_2 / D), (x_2 * y_2), -(1 + math.pow(x_2,2)), y_2],
+	[0, (-1 / D), (y_2 / D), (1 + math.pow(y_2,2)), (-x_2 * y_2), -x_2],
+	[(-1 / D), 0, (x_3 / D), (x_3 * y_3), -(1 + math.pow(x_3,2)), y_3],
+	[0, (-1 / D), (y_3 / D), (1 + math.pow(y_3,2)), (-x_3 * y_3), -x_3],
+	[(-1 / D), 0, (x_4 / D), (x_4 * y_4), -(1 + math.pow(x_4,2)), y_4],
+	[0, (-1 / D), (y_4 / D), (1 + math.pow(y_4,2)), (-x_4 * y_4), -x_4]])
 
-# Equation 3.11: camera velocity output
-# v_c = -lambda * PseudoInverse * Error
+PseudoInverse = inv(FeatureJacobian.transpose * FeatureJacobian) * FeatureJacobian.transpose # Moore-Penrose pseudo-inverse
+
+# IBVS control output
+RelativeCameraVelocity = -1 * PseudoInverse * Error
+# need to expand RelativeCameraVelocity to feed independent values to the drone controller
+v_cx = RelativeCameraVelocity[0, 0] # Lineaar velovity of the drone
+v_cy = RelativeCameraVelocity[1, 0] # Lineaar velovity of the drone
+v_cz = RelativeCameraVelocity[2, 0] # Lineaar velovity of the drone
+w_cx = RelativeCameraVelocity[3, 0] # Angular velovity of the drone
+w_cy = RelativeCameraVelocity[4, 0] # Angular velovity of the drone
+w_cz = RelativeCameraVelocity[5, 0] # Angular velovity of the drone
 
 # -----------------------FUNCTIONS-----------------------
 # Some setup
@@ -194,6 +66,7 @@ FOV_u = 52
 FOV_v = 39
 A_exp = 100000
 d_exp = 10
+PreviousRelativeDistance = 0
 prev_delta_x_tme = 0
 prev_delta_y_tme = 0
 prev_delta_psi_tme = 0
@@ -271,13 +144,12 @@ video = test.GetFrame()
 while not video.frame_available():
     continue
 
-# Find the target in the image frame
-# and draw a bounding box around it
+# Find the target in the image frame and draw a bounding box around it
 def GetTargetPosition():
 	frame = test.GetFrame()
 	BGR = cv.cvtColor(frame, cv.COLOR_BAYER_GB2BGR)
-	src = BGR 
-	
+	src = BGR
+
 	# Check if image is loaded fine
 	if src is None:
 		print "Error opening image!"
@@ -311,11 +183,11 @@ def GetTargetPosition():
 	contours = imutils.grab_contours(contours) # grabs the appropriate tuple value based on the OpenCV version
 
 	# Only proceed if at least one contour was found
-	if len(contours) > 0:		
+	if len(contours) > 0:
 		# Find the largest contour in the mask, then use it to
 		# compute the minimum area rectangle and centroid
 		c = max(contours, key = cv.contourArea)
-		
+
 		# Contour approximation
 		epsilon = 0.001*cv.arcLength(c, True)
 		approx = cv.approxPolyDP(c, epsilon, True)
@@ -326,14 +198,14 @@ def GetTargetPosition():
 
 		M = cv.moments(c)
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-		
+
 		# Only proceed if the area meets a minimum size
 		if cv.contourArea(c) >= 300:
 			cv.rectangle(src, (x, y), (x + w, y + h), (255, 255, 255), 2)
 			cv.circle(src, center, 5, (0, 0, 255), -1)
 			cv2.imshow("green", mask)
 			print "Bounding Box:", (x, y), ((x + w), y), ((x + w), (y + h)), (x, (y + h))
-		
+
 		else:
 			print "No Object Detected"
 	else:
@@ -349,7 +221,7 @@ def GetTargetPosition():
 def FindRelativeDistance(contours):
 	if cv.contourArea(contours) < 500:
 		RelativeDistance = 2.021 * math.exp(-0.0021 * cv.contourArea(c)) + 0.07472 * math.exp(0.0031 * cv.contourArea(c))
-	
+
 	else:
 		RelativeDistance = 0.9576 * math.exp(-0.001674 * cv.contourArea(c)) + 0.6411 * math.exp(-0.0001057 * cv.contourArea(c))
 	return RelativeDistance
@@ -361,9 +233,9 @@ def GetCentroidData():
 		return "No Object Detected:", None
 
 	if (x_bb + w_bb == 640 or   # if the target is at the edge, don't send any information
-			x_bb <= 0 or
+			x_bb == 0 or
 			y_bb + h_bb == 480 or
-			y_bb <= 0):
+			y_bb == 0):
 		return "Object Leaving Frame"
 
 	# Equation 1 from Pestana "Computer vision based general object following"
@@ -405,11 +277,10 @@ def GetSetpoints():
 	if delta_f_u_psi is None:
 		return 0
 
-	# x velocity controller
-	ChangeInRelativeDistance = RelativeDistance - PreviousRelativeDistance
+	# Z velocity controller
+	ChangeInHeight = RelativeDistance - PreviousRelativeDistance
+	HeightRate = (((DesiredZ - RelativeDistance) * kp_vx) + (((RelativeDistance - PreviousRelativeDistance) / (time.time() - start_time)) * (DesiredZ - RelativeDistance) * kd_vx))
 	PreviousRelativeDistance = RelativeDistance
-	DesiredPitch = (((Desiredx - Measuredx) * kp_vx) + (((Measuredx - PreviousMeasuredx) / (time.time() - start_time)) * (Desiredx - Measuredx) * kd_vx))
-	PreviousMeasuredx = Measuredx
 
 	# Pitch velocity controller
 	DesiredPitchVelocity = (((DesiredPitch - MeasuredPitch) * kp_vx) + (((MeasuredPitch - PreviousMeasuredPitch) / (time.time() - start_time)) * (DesiredPitch - MeasuredPitch) * kd_vx))
