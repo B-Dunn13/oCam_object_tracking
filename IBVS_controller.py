@@ -132,7 +132,7 @@ def GetTargetPosition():
 	GreenLower = (29, 86, 6)
 	GreenUpper = (64, 255, 255)
 
-	# Construct a combined mask for the color "red", then perform
+	# Construct a combined mask for the desired color, then perform
 	# a series of dilations and erosions to remove any small
 	# unwanted colors left in the mask
 	mask = cv.inRange(hsv, GreenLower, GreenUpper)
@@ -286,7 +286,6 @@ def GetSetpoints():
 	# Pitch velocity controller
 	DesiredPitchVelocity = (((DesiredPitch - MeasuredPitch) * kp_vx) + (((MeasuredPitch - PreviousMeasuredPitch) / (time.time() - start_time)) * (DesiredPitch - MeasuredPitch) * kd_vx))
 	PreviousMeasuredPitch = MeasuredPitch
-
 
 	print "delta_x_tme:" + str(delta_x_tme)
 
