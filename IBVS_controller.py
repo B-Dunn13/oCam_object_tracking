@@ -10,47 +10,11 @@ import liboCams
 import numpy as np
 import sys
 
-# Variables and parameters
+# -----------------------FUNCTIONS-----------------------
+# Some setup
 D = RelativeDistance # Depth of the point relative to the camera frame
 f = 0.0036 # camera focal length (m)
 FocalLength = f
-
-# -----------------------IBVS CONTROL LAW-----------------------
-x_1 = x
-y_1 = y
-x_2 = x + w
-y_2 = y
-x_3 = x + w
-y_3 = y + h
-x_4 = x
-y_4 = y + h
-FeaturePoints = np.matrix([[x_1], [y_1], [x_2], [y_2], [x_3], [y_3], [x_4], [y_4]])
-DesiredFeaturePoints = np.matrix([[10], [10], [630], [10], [630], [470], [10], [470]])
-Error = FeaturePoints - DesiredFeaturePoints
-
-FeatureJacobian = np.matrix([[(-1 / D), 0, (x_1 / D), (x_1 * y_1), -(1 + math.pow(x_1,2)), y_1],
-	[0, (-1 / D), (y_1 / D), (1 + math.pow(y_1,2)), (-x_1 * y_1), -x_1],
-	[(-1 / D), 0, (x_2 / D), (x_2 * y_2), -(1 + math.pow(x_2,2)), y_2],
-	[0, (-1 / D), (y_2 / D), (1 + math.pow(y_2,2)), (-x_2 * y_2), -x_2],
-	[(-1 / D), 0, (x_3 / D), (x_3 * y_3), -(1 + math.pow(x_3,2)), y_3],
-	[0, (-1 / D), (y_3 / D), (1 + math.pow(y_3,2)), (-x_3 * y_3), -x_3],
-	[(-1 / D), 0, (x_4 / D), (x_4 * y_4), -(1 + math.pow(x_4,2)), y_4],
-	[0, (-1 / D), (y_4 / D), (1 + math.pow(y_4,2)), (-x_4 * y_4), -x_4]])
-
-PseudoInverse = inv(FeatureJacobian.transpose * FeatureJacobian) * FeatureJacobian.transpose # Moore-Penrose pseudo-inverse
-
-# IBVS control output
-RelativeCameraVelocity = -1 * PseudoInverse * Error
-# need to expand RelativeCameraVelocity to feed independent values to the drone controller
-v_cx = RelativeCameraVelocity[0, 0] # Lineaar velovity of the drone
-v_cy = RelativeCameraVelocity[1, 0] # Lineaar velovity of the drone
-v_cz = RelativeCameraVelocity[2, 0] # Lineaar velovity of the drone
-w_cx = RelativeCameraVelocity[3, 0] # Angular velovity of the drone
-w_cy = RelativeCameraVelocity[4, 0] # Angular velovity of the drone
-w_cz = RelativeCameraVelocity[5, 0] # Angular velovity of the drone
-
-# -----------------------FUNCTIONS-----------------------
-# Some setup
 w_im = 640  # image width in pixels
 h_im = 480  # image height in pixels
 got_initial_frame = False
@@ -215,7 +179,7 @@ def GetTargetPosition():
 	print "x_bb: %3d y_bb: %3d w_bb: %3d h_bb: %3d" % (x, y, w, h)
 	if cv2.waitKey(1) & 0xFF == ord("q"):
 		return x
-	return x, y, w, h, (x, y), ((x + w), y), ((x + w), (y + h)), (x, (y + h))
+	return x, y, w, h,
 
 # Find the distance of the object relative to the camera
 def FindRelativeDistance(contours):
@@ -225,6 +189,43 @@ def FindRelativeDistance(contours):
 	else:
 		RelativeDistance = 0.9576 * math.exp(-0.001674 * cv.contourArea(c)) + 0.6411 * math.exp(-0.0001057 * cv.contourArea(c))
 	return RelativeDistance
+
+# -----------------------IBVS CONTROL LAW-----------------------
+def IBVSController():
+	x, y, w, h = GetTargetPosition()
+	x_1 = x
+	y_1 = y
+	x_2 = x + w
+	y_2 = y
+	x_3 = x + w
+	y_3 = y + h
+	x_4 = x
+	y_4 = y + h
+	FeaturePoints = np.matrix([[x_1], [y_1], [x_2], [y_2], [x_3], [y_3], [x_4], [y_4]])
+	DesiredFeaturePoints = np.matrix([[90], [10], [550], [10], [550], [470], [90], [470]])
+	Error = FeaturePoints - DesiredFeaturePoints
+
+	FeatureJacobian = np.matrix([[(-1 / D), 0, (x_1 / D), (x_1 * y_1), -(1 + math.pow(x_1,2)), y_1],
+		[0, (-1 / D), (y_1 / D), (1 + math.pow(y_1,2)), (-x_1 * y_1), -x_1],
+		[(-1 / D), 0, (x_2 / D), (x_2 * y_2), -(1 + math.pow(x_2,2)), y_2],
+		[0, (-1 / D), (y_2 / D), (1 + math.pow(y_2,2)), (-x_2 * y_2), -x_2],
+		[(-1 / D), 0, (x_3 / D), (x_3 * y_3), -(1 + math.pow(x_3,2)), y_3],
+		[0, (-1 / D), (y_3 / D), (1 + math.pow(y_3,2)), (-x_3 * y_3), -x_3],
+		[(-1 / D), 0, (x_4 / D), (x_4 * y_4), -(1 + math.pow(x_4,2)), y_4],
+		[0, (-1 / D), (y_4 / D), (1 + math.pow(y_4,2)), (-x_4 * y_4), -x_4]])
+
+	PseudoInverse = inv(FeatureJacobian.transpose * FeatureJacobian) * FeatureJacobian.transpose # Moore-Penrose pseudo-inverse
+
+	# IBVS control output
+	RelativeCameraVelocity = -1 * PseudoInverse * Error
+	# need to expand RelativeCameraVelocity to feed independent values to the drone controller
+	v_cx = RelativeCameraVelocity[0, 0] # Lineaar velovity of the drone
+	v_cy = RelativeCameraVelocity[1, 0] # Lineaar velovity of the drone
+	v_cz = RelativeCameraVelocity[2, 0] # Lineaar velovity of the drone
+	w_cx = RelativeCameraVelocity[3, 0] # Angular velovity of the drone
+	w_cy = RelativeCameraVelocity[4, 0] # Angular velovity of the drone
+	w_cz = RelativeCameraVelocity[5, 0] # Angular velovity of the drone
+	return v_cx, v_cy, v_cz, w_cx, w_cy, w_cz
 
 def GetCentroidData():
 	x_bb, y_bb, w_bb, h_bb = GetTargetPosition()
