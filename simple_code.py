@@ -8,8 +8,8 @@ import sys
 # import FUNKYTIME as FT
 
 # Some setup
-w_im = 480  # image width in pixels
-h_im = 360  # image height in pixels
+w_im = 640  # image width in pixels
+h_im = 480  # image height in pixels
 
 # Find the distance of the object relative to the camera
 def FindRelativeDistance(contours):
