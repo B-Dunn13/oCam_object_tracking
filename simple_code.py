@@ -19,24 +19,25 @@ def FindRelativeDistance(contours):
 		RelativeDistance = 0.9576 * math.exp(-0.001674 * cv.contourArea(c)) + 0.6411 * math.exp(-0.0001057 * cv.contourArea(c))
 	return RelativeDistance
 
-# def GetCentroidData():
-# 	x, y, w, h
+def GetCentroidData():
+	x, y, w, h = GetTargetPosition()
 
-# 	if x is None:  # if nothing is in frame, don't send any information
-# 		return "No Object Detected:", None
+	if x is None:  # if nothing is in frame, don't send any information
+		return "No Object Detected:", None
 
-# 	if (x + w == 640 or   # if target is at edge, don't send any information
-# 			x - w <= 0 or
-# 			y + h == 480 or
-# 			y - h <= 0):
-# 		return None, None, None
+	if (x + w == 640 or   # if target is at edge, don't send any information
+			x - w <= 0 or
+			y + h == 480 or
+			y - h <= 0):
+		return None, None, None
 
-# 	# Equation 1 from Pestana "Computer vision based general object following"
-# 	f_u = (x + (w / 2)) / w_im
-# 	f_v = (y + (h / 2)) / h_im
-# 	f_delta = math.sqrt((w_im * h_im) / (w * h))
+	# Equation 1 from Pestana "Computer vision based general object following"
+	f_u = (x + (w / 2)) / w_im
+	f_v = (y + (h / 2)) / h_im
+	f_delta = math.sqrt((w_im * h_im) / (w * h))
+	Center = [f_u, f_v]
 
-# 	return (f_u, f_v), f_delta
+	return Center
 
 # Find the oCam
 devpath = liboCams.FindCamera("oCam")
@@ -84,8 +85,8 @@ frame_cnt = 0
 while True:
 	frame = test.GetFrame()
 	BGR = cv.cvtColor(frame, cv.COLOR_BAYER_GB2BGR)
-	src = BGR 
-	
+	src = BGR
+
 	# Check if image is loaded fine
 	if src is None:
 		print "Error opening image!"
@@ -115,7 +116,7 @@ while True:
 	# redUpper = np.array([180, 255, 255])
 	# mask2 = cv.inRange(hsv, redLower, redUpper)
 
-	# Construct a combined mask for the color "red", then perform
+	# Construct a combined mask for the desired color, then perform
 	# a series of dilations and erosions to remove any small
 	# unwanted colors left in the mask
 	mask = cv.inRange(hsv, GreenLower, GreenUpper)
@@ -141,11 +142,11 @@ while True:
 	center = None
 
 	# Only proceed if at least one contour was found
-	if len(contours) > 0:		
+	if len(contours) > 0:
 		# Find the largest contour in the mask, then use it to
 		# compute the minimum area rectangle and centroid
 		c = max(contours, key = cv.contourArea)
-		
+
 		# Contour approximation
 		epsilon = 0.001*cv.arcLength(c, True)
 		approx = cv.approxPolyDP(c, epsilon, True)
@@ -163,31 +164,16 @@ while True:
 
 		M = cv.moments(c)
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-		
+
 		# # Only proceed if the area meets a minimum size
 		# if cv.contourArea(c) >= 300:
 		# 	cv.drawContours(src, [approx], 0, (0, 255, 255), 1)
 		# 	cv.rectangle(src, (x, y), (x + w, y + h), (0, 0, 255), 2)
 		# 	cv.circle(src, center, 5, (0, 0, 255), -1)
 		# 	print "Bounding Box:", (x, y), ((x + w), y), ((x + w), (y + h)), (x, (y + h))
-		
+
 		# else:
 		# 	print "No Object Detected"
-
-		# if x is None:  # if nothing is in frame, don't send any information
-		# 	print "No Object Detected:", None
-
-		# if (x + w == 480 or   # if target is at edge, don't send any information
-		# 		x <= 0 or
-		# 		y + h == 360 or
-		# 		y <= 0):
-		# 	print "Object Leaving Frame"
-
-		# # Equation 1 from Pestana "Computer vision based general object following"
-		# f_u = (x + (w / 2))
-		# f_v = (y + (h / 2))
-		# f_delta = math.sqrt((w_im * h_im) / (w * h))
-		# print "Centroid Coordinates:", (f_u, f_v)
 
 		# Only proceed if the area meets a minimum size
 		if cv.contourArea(c) >= 300:
@@ -201,11 +187,11 @@ while True:
 		else:
 			print "No object Detected"
 
-		# # Find the coordinates of the centroid in the image frame
-		print "Center:", center
+		# Find the coordinates of the centroid in the image frame
+		Center = GetCentroidData(x, y, w, h)
+		print "Center Coordinates:", center
 
 		# Find the distance of the object relative to the camera
-		# RelativeDistance = FT.FindRelativeDistance(c)
 		RelativeDistance = FindRelativeDistance(c)
 		print "Relative Distance to Object:", RelativeDistance
 
@@ -219,7 +205,7 @@ while True:
 		break
 	frame_cnt += 1
 
-test.Stop()  
+test.Stop()
 cv.destroyAllWindows()
 char = cv.waitKey(1)
 test.Close()
