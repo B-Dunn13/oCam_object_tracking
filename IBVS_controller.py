@@ -44,8 +44,8 @@ y_2_star = 0
 y_3_star = 480
 y_4_star = 480
 center = None
-x_0 = 320
-y_0 = 240
+x_0 = 320 # principal point
+y_0 = 240 # principal point
 
 kp_vx = 0.0254
 kd_vx = 0.00124
