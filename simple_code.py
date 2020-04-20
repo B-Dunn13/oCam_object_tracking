@@ -39,43 +39,43 @@ def GetCentroidData():
 
 	return Center
 
-# Find the oCam
-devpath = liboCams.FindCamera("oCam")
-if devpath is None:
-  exit()
-
-test = liboCams.oCams(devpath, verbose = 1)
-
-# Get the format list for the oCam
-print "Format List"
-fmtlist = test.GetFormatList()
-for fmt in fmtlist:
-  print "\t", fmt
-
-# Set the format for the oCam (8-bit Bayer GRGR/BGBG,
-# 640L, 480L, 60)
-print "SET", 8, fmtlist[8]
-test.Set(fmtlist[8])
-
-# Get the current camera parameters and set new
-# camera prameters before recording
-print "Control List"
-ctrlist = test.GetControlList()
-for key in ctrlist:
-	print "\t", key, "\tID:", ctrlist[key]
-	print test.GetControl(ctrlist[key])
-	if key == "White Balance Red Component":
-		test.SetControl(ctrlist[key], 104)
-	elif key == "White Balance Blue Component":
-		test.SetControl(ctrlist[key], 250)
-	elif key == "Gain":
-		test.SetControl(ctrlist[key], 64)
-	elif key == "Exposure (Absolute)":
-		test.SetControl(ctrlist[key], 128)
-	elif key == "Exposure, Auto":
-		test.SetControl(ctrlist[key], 3)
-
-test.Start()
+# # Find the oCam
+# devpath = liboCams.FindCamera("oCam")
+# if devpath is None:
+#   exit()
+#
+# test = liboCams.oCams(devpath, verbose = 1)
+#
+# # Get the format list for the oCam
+# print "Format List"
+# fmtlist = test.GetFormatList()
+# for fmt in fmtlist:
+#   print "\t", fmt
+#
+# # Set the format for the oCam (8-bit Bayer GRGR/BGBG,
+# # 640L, 480L, 60)
+# print "SET", 8, fmtlist[8]
+# test.Set(fmtlist[8])
+#
+# # Get the current camera parameters and set new
+# # camera prameters before recording
+# print "Control List"
+# ctrlist = test.GetControlList()
+# for key in ctrlist:
+# 	print "\t", key, "\tID:", ctrlist[key]
+# 	print test.GetControl(ctrlist[key])
+# 	if key == "White Balance Red Component":
+# 		test.SetControl(ctrlist[key], 104)
+# 	elif key == "White Balance Blue Component":
+# 		test.SetControl(ctrlist[key], 250)
+# 	elif key == "Gain":
+# 		test.SetControl(ctrlist[key], 64)
+# 	elif key == "Exposure (Absolute)":
+# 		test.SetControl(ctrlist[key], 128)
+# 	elif key == "Exposure, Auto":
+# 		test.SetControl(ctrlist[key], 3)
+#
+# test.Start()
 
 start_time = time.time()
 
@@ -83,7 +83,8 @@ frame_cnt = 0
 
 #----------------------------------OBJECT DETECTION----------------------------------
 while True:
-	frame = test.GetFrame()
+	# frame = test.GetFrame() # use this method if using the oCam
+	frame = cv.VideoCapture()
 	BGR = cv.cvtColor(frame, cv.COLOR_BAYER_GB2BGR)
 	src = BGR
 
